@@ -16,11 +16,11 @@ datasource db {
 model User {
   id        Int      @id @default(autoincrement())
   firstname String
-  lastname  String
+  lastname  String?
   email     String   @unique
   password  String
   createdate DateTime @default(now())
-  role      Role
+  role      Role @default(DEVELOPER)
   issues    Issue[]
 }
 

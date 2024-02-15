@@ -16,6 +16,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const client_1 = require("@prisma/client");
 const issueValidation_1 = require("./validation/issueValidation");
+const userValidation_1 = require("./validation/userValidation");
 const prisma = new client_1.PrismaClient();
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -149,6 +150,112 @@ app.patch("/api/issue/:id", (req, res) => __awaiter(void 0, void 0, void 0, func
     finally {
         yield prisma.$disconnect();
     }
+}));
+app.delete("/api/issue/:id", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const issueId = parseInt(req.params.id, 10);
+    try {
+        // Check if the issue exists before attempting to delete
+        const existingIssue = yield prisma.issue.findUnique({
+            where: {
+                id: issueId,
+            },
+        });
+        if (!existingIssue) {
+            return res.status(404).json({
+                message: 'Issue not found',
+            });
+        }
+        // Delete the issue
+        yield prisma.issue.delete({
+            where: {
+                id: issueId,
+            },
+        });
+        return res.status(200).json({
+            message: 'Successfully deleted',
+        });
+    }
+    catch (error) {
+        console.error('Error deleting issue:', error);
+        return res.status(500).json({
+            message: 'Internal Server Error',
+        });
+    }
+    finally {
+        yield prisma.$disconnect();
+    }
+}));
+app.patch("/api/issue/assign/:issueId/:userId", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const issueId = parseInt(req.params.issueId, 10);
+    const userId = parseInt(req.params.userId, 10);
+    try {
+        yield prisma.$transaction([
+            // Update the issue to assign it to the user
+            prisma.issue.update({
+                where: {
+                    id: issueId,
+                },
+                data: {
+                    userId: userId,
+                },
+            }),
+            // Update the user to include the assigned issue
+            prisma.user.update({
+                where: {
+                    id: userId,
+                },
+                data: {
+                    issues: {
+                        connect: {
+                            id: issueId,
+                        },
+                    },
+                },
+            }),
+        ]);
+        return res.status(200).json({
+            message: 'Issue assigned successfully',
+        });
+    }
+    catch (error) {
+        console.error('Error assigning issue:', error);
+        return res.status(500).json({
+            message: 'Internal Server Error',
+        });
+    }
+    finally {
+        yield prisma.$disconnect();
+    }
+}));
+app.post("/api/user", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const body = req.body;
+    const validateUser = userValidation_1.userSchema.safeParse(body);
+    if (!validateUser.success) {
+        return res.json({
+            message: "invalid inputs "
+        });
+    }
+    const existUser = yield prisma.user.findUnique({
+        where: {
+            email: body.email
+        }
+    });
+    if (existUser) {
+        return res.json({
+            message: "email already exist"
+        });
+    }
+    yield prisma.user.create({
+        data: {
+            firstname: body.firstname,
+            lastname: body.lastname,
+            email: body.email,
+            password: body.password
+        }
+    });
+    return res.json({
+        message: "user created success "
+    });
 }));
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
