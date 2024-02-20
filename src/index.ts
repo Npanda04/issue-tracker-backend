@@ -64,7 +64,7 @@ app.get("/api/allissues", async (req: Request, res: Response) => {
         allIssues.forEach((issue) => {
             console.log(issue.status);
         });
-
+        
         return res.json({
             issues: allIssues,
         });
@@ -291,9 +291,6 @@ app.delete("/api/issue/:id", async (req: Request, res: Response) => {
         message : "user created success "
     })
   })
-
-
-
 
 
 app.listen(port, () => {
